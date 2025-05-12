@@ -1,53 +1,198 @@
-from flask import jsonify
-import mysql.connector
-
+from fastapi.responses import JSONResponse
+from datetime import datetime
+import mysql.connector, json
+from .Logging import write_log
 # Connect to the database
-connection = mysql.connector.connect(
-    host="localhost",        # MySQL host (localhost for local)
-    user="root",    # MySQL username
-    password="061104", # MySQL password
-    database="SmartFarmDB" # Name of your database
-)
+def get_connection():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="061104",
+        database="SmartFarmDB",
+        autocommit=True
+    )
 
-cur = connection.cursor()
-def Authenticate(username, password):
-    return cur.callproc('Authenticate', [username, password])
+def Fetch_users():
+    conn = get_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.callproc('FetchUser')
+    for result in cur.stored_results():
+        rows = result.fetchall()
+        cur.close()
+        return rows
+
 
 def FindUser(username, email):
+    conn = get_connection()
     try:
-        # Declare an output variable for the user count
-        cur.execute("SET @user_count = 0;")
+        cur = conn.cursor()
 
-        # Call the procedure to check if the user exists
-        cur.callproc('CheckUserExistence', [username, email, '@user_count'])
+        # Prepare arguments (last is placeholder for OUT param)
+        args = [username, email, 0]
 
-        # Retrieve the result (user count)
-        cur.execute("SELECT @user_count;")
-        result = cur.fetchone()
-        return result[0], None
+        # Call procedure
+        result_args = cur.callproc('CheckUserExistence', args)
 
+        # OUT param is updated in result_args[2]
+        count = result_args[2]
+
+        cur.close()
+        return count, None
 
     except Exception as e:
-        # Rollback in case of error
-        connection.rollback()
-        return None, jsonify({"error": f"An error occurred: {str(e)}"}), 500
+        conn.rollback()
+        write_log(f"[ERROR] FindUser failed: {e}")
+        return None, {"error": f"An error occurred: {str(e)}"}
+
+
 
 def RegistUser(username, password, email, device_name):
-    # Call the stored procedure to insert data into Users and Devices table
-    cur.callproc('Registration', [username, password, email, device_name])
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.callproc('Registration', [username, password, email, device_name])
+        conn.commit()
+        cur.close()
+        return JSONResponse(
+                        status_code=201,
+                        content={"message": "User registered successfully"}
+                    )
+    except Exception as e:
+        conn.rollback()
+        return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Registration failed: {str(e)}"}
+                    )
 
-    # Commit the transaction
-    connection.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
+
+def AddAutomationRule(DeviceName, RuleDescription: dict):
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+
+        # Step 1: Fetch existing rule
+        cur.callproc('RetrieveAutomationRule', [DeviceName])
+        for result in cur.stored_results():
+            rows = result.fetchall()
+            if rows and rows[0]['AutomationRule']:
+                rule_json = json.loads(rows[0]['AutomationRule'])
+                if not rule_json:
+                    UpdataAutomationRule(DeviceName, RuleDescription)
+                    return JSONResponse(
+                        status_code=201,
+                        content={"message": "Add automation rule successfully"}
+                    )
+            else:
+                UpdataAutomationRule(DeviceName, RuleDescription)
+                return JSONResponse(
+                        status_code=201,
+                        content={"message": "Add automation rule successfully"}
+                    )
+
+        # Step 2: Merge new rules
+        existing_rules = rule_json.get("Body", {})
+        count = len(existing_rules) + 1
+        for _, rule_content in RuleDescription.get("Body", {}).items():
+            rule_json["Body"][f"rule{count}"] = rule_content
+            count += 1
+
+        # Step 3: Update automation rule
+        UpdataAutomationRule(DeviceName, rule_json)
+        return JSONResponse(
+                        status_code=201,
+                        content={"message": "Add automation rule successfully"}
+                    )
+
+    except Exception as e:
+        conn.rollback()
+        return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Add automation rule failed: {str(e)}"}
+                    )
+
+def UpdataAutomationRule(DeviceName, RuleDescription: dict):
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        rule_json = json.dumps(RuleDescription)
+        cur.callproc('UpdateAutomationRule', [DeviceName, rule_json])
+        conn.commit()
+        cur.close()
+        return JSONResponse(
+                        status_code=201,
+                        content={"message": "Update automation rule successfully"}
+                    )
+    except Exception as e:
+        conn.rollback()
+        return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Update automation rule failed: {str(e)}"}
+                    )
 
 def InsertSensorData(DeviceName, payload):
-    return cur.callproc('insertSensorData', [DeviceName, payload])
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        data = json.dumps(payload)
+        cur.callproc('insertSensorData', [DeviceName, data])
+        conn.commit()
+        cur.close()
+        return JSONResponse(
+                        status_code=201,
+                        content={"message": "Insert successful"}
+                    )
+    except Exception as e:
+        conn.rollback()
+        return JSONResponse(
+                        status_code=500,
+                        content={"error": f"Insertion failed: {str(e)}"}
+                    )
 
-def RetrieveSensorData(UserName):
-    # Call the stored procedure to insert data into Users and Devices table
-    cur.callproc('retrieveDeviceDataByUserName', [UserName])
-    for result in cur.stored_results():
-        return result.fetchall()  #retrieve the data_payload
+def RetrieveNewSensorData(UserName, LastSeen):
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.callproc('RetrieveNewSensorData', [UserName, LastSeen])
+        for result in cur.stored_results():
+            data = result.fetchall()
+            if not data:
+                return []  # ✅ Always return a list
 
+            for row in data:
+                if isinstance(row.get("timestamp"), datetime):
+                    row["timestamp"] = row["timestamp"].isoformat()
+            return data
+    except Exception as e:
+        write_log(f"[ERROR] RetrieveNewSensorData failed: {e}")
+        return []
+
+def RetrieveHistoricalSensorData(UserName, LastSeen):
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.callproc('RetrieveHistoricalSensorData', [UserName, LastSeen])
+        for result in cur.stored_results():
+            data = result.fetchall()
+            if not data:
+                return [{}]
+
+            for row in data:
+                if isinstance(row.get("timestamp"), datetime):
+                    row["timestamp"] = row["timestamp"].isoformat()
+            return data
+    except Exception as e:
+        write_log(f"[ERROR] RetrieveHistoricalSensorData failed: {e}")
+        return []
+
+def RetrieveLatestSensorData(DeviceName):
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.callproc('RetrieveLatestSensorData', [DeviceName])
+        for result in cur.stored_results():
+            data = result.fetchall()
+            return data if data else []  # always return a list
+    except Exception as e:
+        return []
 
