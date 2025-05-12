@@ -1,3 +1,4 @@
+Before Running the code, setup the database by running SmartFarmDB.sql file on MySQL, then changing the connection information of the get_connection function in ProcedureCall.py file in the Infrastructure directory.
 
 FrontEnd interaction:
 1. open terminal and change directory to \SmartFarm backEnd\src\main
