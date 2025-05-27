@@ -18,7 +18,7 @@ class SADRegistry: #Sensor and Device registry
                 jsonobj = json.loads(payload)
                 self._data[self.topics[topic]] = jsonobj
                 write_log(f"Retrieve from {self.deviceInfo}, the data: {self.get_all_data()} ")
-                ProcedureCall.InsertSensorData(self.deviceInfo, self.get_all_data()) # insert new data to DataBase
+                # ProcedureCall.InsertSensorData(self.deviceInfo, self.get_all_data()) # insert new data to DataBase
             except Exception as e:
                 write_log(f"Error handling message for {topic}: {e}")
 
