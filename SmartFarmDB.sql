@@ -18,7 +18,7 @@ DROP PROCEDURE IF EXISTS RetrieveLatestSensorData;
 ####################################ViewData############################################
 SELECT * FROM Users;
 SELECT * FROM Devices;
-SELECT * FROM DeviceData;
+SELECT * FROM DeviceData WHERE device_id = 11;
 
 ###################################InsertDummyData######################################
 INSERT INTO Users (username, password, email) VALUES 

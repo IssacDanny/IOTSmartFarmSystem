@@ -19,16 +19,15 @@ class MQTTManager:
         self.client.loop_start()
         for topic in self.registry.topics:
             self.client.message_callback_add(topic, self.create_message_handler(topic))
+        self.registry.run_background_inserter()
 
     def RegistTopics(self):
         self.registry.register("feeds/V1", "Temperature")
         self.registry.register("feeds/V2", "Humidity")
         self.registry.register("feeds/V3", "Moisture")
         self.registry.register("feeds/V4", "Lux")
-        self.registry.register("feeds/V5", "GDD")
-        self.registry.register("feeds/V6", "Status")
-        self.registry.register("feeds/V10", "Pump 1")
-        self.registry.register("feeds/V11", "Pump 2")
+        #self.registry.register("feeds/V10", "Pump 1")
+        #self.registry.register("feeds/V11", "Fan")
 
     def connected(self, client, userdata, flags, rc):
         if rc == 0:
@@ -46,12 +45,16 @@ class MQTTManager:
     def subscribed(self, client, userdata, mid, granted_qos):
         write_log(f"Device {self.deviceInfo} Subscribed to topics.")
 
+    def publish(self, topic, value):
+        self.client.publish(topic, value)
+
     def create_message_handler(self, topic):
         return lambda client, userdata, message: self.registry.handle_message(topic, message.payload.decode("utf-8"))
-
+    """
     def json_builder(self):
         print("Current Sensor Data:")
         print(json.dumps(self.registry.get_all_data(), indent=2))
 
     def sensorDataProducer(self):
         return json.dumps(self.registry.get_all_data())
+    """

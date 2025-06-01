@@ -124,11 +124,12 @@ class ConsoleApp:
             print("activate pump: 1")
             print("activate fan: 2")
             commandType = input("command type: ")
+            turn = input("Turn on/off(1-0): ")
             if commandType == "1":
                 command = {
                     "CommandType": "ActivePump",
                     "Parameter": {
-                        "Pump_1": 1
+                        "Pump_1": int(turn)
                     }
                 }
                 break
@@ -136,7 +137,7 @@ class ConsoleApp:
                 command = {
                     "CommandType": "ActiveFan",
                     "Parameter": {
-                        "Fan": 1
+                        "Fan": int(turn)
                     }
                 }
                 break
@@ -237,12 +238,14 @@ class ConsoleApp:
             print("select command type:")
             print("activate pump: 1")
             print("activate fan: 2")
+
+            turn = input("turn on/off(1/0): ")
             commandType = input("command type: ")
             if commandType == "1":
                 command = {
                     "CommandType": "ActivePump",
                     "Parameter": {
-                        "Pump_1": 1
+                        "Pump_1": int(turn)
                     }
                 }
                 break
@@ -251,7 +254,7 @@ class ConsoleApp:
                 command = {
                     "CommandType": "ActiveFan",
                     "Parameter": {
-                        "Fan": 1
+                        "Fan": int(turn)
                     }
                 }
                 break

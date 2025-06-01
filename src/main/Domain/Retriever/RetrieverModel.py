@@ -9,12 +9,9 @@ class Retriever:
     def __init__(self, userName, DeviceInfo):
         self.userName = userName
         self.DeviceInfo = DeviceInfo #ACCESS NAME
-        self.mqttManager = None
-
-    def StartConsumeData(self):
         self.mqttManager = MQTTManager("mqtt.ohstem.vn", 1883, self.DeviceInfo, "")
 
-    def StopConsumeData(self):
+    async def StopConsumeData(self):
         self.mqttManager.disconnect()
 
     async def startPublishData(self, webSocket: WebSocket):

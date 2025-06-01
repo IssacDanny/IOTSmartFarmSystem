@@ -34,12 +34,31 @@ class RuleGenerator:
             cls.ActGen = ActivationGenerator()
         return cls._instance
 
-    def generate(self, DeviceInfo, RuleDescription: dict) -> [Rule]:
+    def generate(self, DeviceInfo, mqtt_manager, RuleDescription: dict) -> [Rule]:
         Rules = []
         for rule_name, rule_content in RuleDescription.get("Body", {}).items():
-            rule = Rule(ConditionRegistry.create(rule_content["Condition"]), self.ActGen.generate(DeviceInfo, rule_content["Action"]))
+            action = {"action": self.ActGen.generate(DeviceInfo, mqtt_manager, rule_content["Action"]), "inverseAction": self.ActGen.generate(DeviceInfo, mqtt_manager, self.inverse_action(rule_content["Action"]))}
+            rule = Rule(ConditionRegistry.create(rule_content["Condition"]), action)
             Rules.append(rule)
 
         return Rules
+
+    def inverse_action(self, activation_json: dict):
+        # Clone the original to avoid modifying in-place
+        new_json = {
+            "Header": activation_json["Header"].copy(),
+            "Body": {
+                "CommandType": activation_json["Body"]["CommandType"],
+                "Parameter": {}
+            }
+        }
+
+        for key, value in activation_json["Body"]["Parameter"].items():
+            # Inverse value: 1 -> 0, 0 -> 1
+            if isinstance(value, (int, float)) and value in [0, 1]:
+                new_json["Body"]["Parameter"][key] = 1 - value
+            else:
+                raise ValueError(f"Unsupported value '{value}' for inversion. Must be 0 or 1.")
+        return new_json
 
 

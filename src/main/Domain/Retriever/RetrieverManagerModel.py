@@ -29,7 +29,7 @@ class RetrieverManager:
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
             for user in self.userManager.store.values():
-                self.loop.create_task(user.retriever.StartConsumeData())
+                self.loop.create_task(user.retriever.mqttManager.sensorDataProducer())
             self.loop.run_forever()
         except Exception as e:
             write_log(f"Error in run_loop: {e}")

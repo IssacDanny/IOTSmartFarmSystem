@@ -11,12 +11,12 @@ class CommandRegistry: # registry pattern
         return decorator
 
     @classmethod
-    def create(cls, DeviceInfo, ActivationDecription: dict) -> ActivationCommand:
+    def create(cls, DeviceInfo, mqtt_manager, ActivationDecription: dict) -> ActivationCommand:
         command_Type = ActivationDecription["Body"]["CommandType"]
         factory = cls._registry.get(command_Type)
         if not factory:
             raise ValueError(f"No command registered for type '{command_Type}'")
-        return factory(DeviceInfo, ActivationDecription)
+        return factory(DeviceInfo, mqtt_manager, ActivationDecription)
 
 
 class ActivationGenerator:
@@ -26,13 +26,13 @@ class ActivationGenerator:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def generate(self, DeviceInfo, ActivationDescription: dict) -> ActivationCommand:
-        return CommandRegistry.create(DeviceInfo, ActivationDescription)
+    def generate(self, DeviceInfo, mqtt_manager, ActivationDescription: dict) -> ActivationCommand:
+        return CommandRegistry.create(DeviceInfo, mqtt_manager, ActivationDescription)
 
 @CommandRegistry.register("ActivePump") # this line return a decorator and call it with the bellow function as argument
-def create_pump_command(DeviceInfo, ActivationDescription):
-    return ActivatePump(DeviceInfo, ActivationDescription["Body"]["Parameter"])
+def create_pump_command(DeviceInfo, mqtt_manager, ActivationDescription):
+    return ActivatePump(DeviceInfo, mqtt_manager, ActivationDescription["Body"]["Parameter"])
 
 @CommandRegistry.register("ActiveFan")
-def create_light_command(DeviceInfo,ActivationDescription):
-    return ActivateFan(DeviceInfo, ActivationDescription["Body"]["Parameter"])
+def create_light_command(DeviceInfo, mqtt_manager, ActivationDescription):
+    return ActivateFan(DeviceInfo, mqtt_manager, ActivationDescription["Body"]["Parameter"])

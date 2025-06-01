@@ -10,6 +10,6 @@ class User:
         self.deviceInfo = deviceInfo
         self.automationRule = AutomationRule
 
-        self.automizer = Automizer(deviceInfo, AutomationRule)
         self.retriever = Retriever(userName, deviceInfo)
-        self.deviceController = DeviceController(deviceInfo)
+        self.automizer = Automizer(deviceInfo, self.retriever.mqttManager, AutomationRule)
+        self.deviceController = DeviceController(deviceInfo, self.retriever.mqttManager)

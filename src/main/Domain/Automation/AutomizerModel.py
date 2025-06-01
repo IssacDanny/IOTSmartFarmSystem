@@ -4,10 +4,10 @@ from Infrastructure import ProcedureCall
 
 
 class Automizer:
-    def __init__(self, DeviceInfo, AutomationRule):
+    def __init__(self, DeviceInfo, mqtt_manager, AutomationRule):
         self.DeviceInfo = DeviceInfo
         self.ruleGen = RuleGenerator()
-        self.ruleSet = self.ruleGen.generate(DeviceInfo, AutomationRule)
+        self.ruleSet = self.ruleGen.generate(DeviceInfo, mqtt_manager,AutomationRule)
         self.lock = asyncio.Lock()
         self.running = False
 
@@ -41,9 +41,9 @@ class Automizer:
             for i in range(0, len(rule_snapshot), BATCH_SIZE):
                 batch = rule_snapshot[i:i + BATCH_SIZE]
                 for rule in batch:
-                    rule.apply(sensor_data)
+                    await rule.apply(sensor_data)
 
-                await asyncio.sleep(1)
+                #await asyncio.sleep(1)
 
     async def StopEnforcing(self):
         self.running = False
