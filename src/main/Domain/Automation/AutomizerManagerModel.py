@@ -20,7 +20,6 @@ class Automizer_Manager:
                     cls._instance.automizerList = []
                     cls._instance.loop = None
                     cls._instance.request_process_thread = None
-                    cls._instance.MessageBroker = None
                     cls._instance.start()
         return cls._instance
 
