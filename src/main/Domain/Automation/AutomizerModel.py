@@ -1,6 +1,8 @@
 import asyncio, json
 from .RuleGeneratorModel import RuleGenerator
 from Infrastructure import ProcedureCall
+from Infrastructure.Logging import write_log
+from datetime import datetime
 
 
 class Automizer:
@@ -52,5 +54,19 @@ class Automizer:
         result = ProcedureCall.RetrieveLatestSensorData(self.DeviceInfo)
         if result:
             last_entry = result[-1]
-            return json.loads(last_entry.get('data_payload', '{}'))  # safe access
+            timestamp_str = last_entry.get('timestamp')
+
+            if timestamp_str:
+                try:
+                    # Adjust format to your DB timestamp format
+                    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                    now = datetime.now()
+
+                    # Accept only if data is fresh within the last 5 seconds
+                    if abs((now - timestamp).total_seconds()) <= 5:
+                        return json.loads(last_entry.get('data_payload', '{}'))
+
+                except Exception as e:
+                    write_log(f"Timestamp parse error: {e}")
+
         return {}

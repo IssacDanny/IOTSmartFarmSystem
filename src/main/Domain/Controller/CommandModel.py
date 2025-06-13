@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from Infrastructure.Logging import write_log
-from src.main.Domain.Retriever.MQTTManagerModel import MQTTManager
+
 
 class ActivationCommand(ABC):
     def __init__(self, DeviceInfo, mqtt_manager, Parameter: dict):

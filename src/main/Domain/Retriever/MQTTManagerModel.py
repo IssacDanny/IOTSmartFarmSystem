@@ -23,12 +23,7 @@ class MQTTManager:
             self.client.message_callback_add(topic, self.create_message_handler(topic))
         self.registry.run_background_inserter()
 
-        self.start_data_collect_loop()
 
-    def start_data_collect_loop(self):
-        while True:
-            ProcedureCall.InsertSensorData(self.deviceInfo, self.registry.get_all_data()) # insert new data to DataBase
-            time.sleep(5)
 
 
     def RegistTopics(self):

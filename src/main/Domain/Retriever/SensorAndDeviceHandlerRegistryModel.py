@@ -34,12 +34,14 @@ class SADRegistry: #Sensor and Device registry
     def get_data(self):
         write_log(f"All data received from {self.deviceInfo}. Inserting to DB...")
         ProcedureCall.InsertSensorData(self.deviceInfo, self._data.copy())
+        self._received.clear()
 
     def run_background_inserter(self, interval=10):
         def loop():
             while True:
                 time.sleep(interval)
-                self.get_data()
+                if self._all_data_received(self.deviceInfo):
+                    self.get_data()
 
         threading.Thread(target=loop, daemon=True).start()
 

@@ -19,6 +19,21 @@ DROP PROCEDURE IF EXISTS RetrieveLatestSensorData;
 SELECT * FROM Users;
 SELECT * FROM Devices;
 SELECT * FROM DeviceData WHERE device_id = 11;
+####################################Export deviceData##################################
+SELECT
+  data_id,
+  device_id,
+  timestamp,
+  data_payload->>'$.Lux' AS Lux,
+  data_payload->>'$.Humidity' AS Humidity,
+  data_payload->>'$.Moisture' AS Moisture,
+  data_payload->>'$.Temperature' AS Temperature
+FROM DeviceData
+INTO OUTFILE 'C:/Users/Admin/Desktop/AIZIP/device_data.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n';
+
 
 ###################################InsertDummyData######################################
 INSERT INTO Users (username, password, email) VALUES 
